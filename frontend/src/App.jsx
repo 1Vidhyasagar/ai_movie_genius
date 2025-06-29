@@ -37,6 +37,8 @@ function App() {
   const [trendingMovies, setTrendingMovies] = useState([]);
   const [aiMovies, setAiMovies] = useState([]);
 
+  const apiBase = import.meta.env.VITE_API_BASE;
+
   useEffect(() => {
     const fetchTrending = async () => {
       try {
@@ -67,12 +69,9 @@ function App() {
     setTrendingMovies([]);
 
     try {
-      const res = await axios.post(
-        "http://ai-movie-genius.onrender.com/api/suggest",
-        {
-          prompt,
-        }
-      );
+      const res = await axios.post(`${apiBase}/api/suggest`, {
+        prompt,
+      });
 
       const suggestions = res.data.result || "";
       setResult(suggestions);
@@ -107,25 +106,23 @@ function App() {
               )}&apikey=${OMDB_API_KEY}`
             );
             if (fallbackRes.data.Search && fallbackRes.data.Search.length > 0) {
-              const firstResult = fallbackRes.data.Search[0];
               const fullDetails = await axios.get(
-                `https://www.omdbapi.com/?i=${firstResult.imdbID}&apikey=${OMDB_API_KEY}`
+                `https://www.omdbapi.com/?i=${fallbackRes.data.Search[0].imdbID}&apikey=${OMDB_API_KEY}`
               );
-              if (fullDetails.data && fullDetails.data.Response === "True") {
-                return fullDetails.data;
-              }
+              return fullDetails.data.Response === "True"
+                ? fullDetails.data
+                : null;
             }
 
             return null;
           } catch (err) {
-            console.error("OMDb fetch error for:", title, err.message);
+            console.error("OMDb fetch error:", title, err.message);
             return null;
           }
         })
       );
 
-      const filtered = movies.filter(Boolean);
-      setAiMovies(filtered);
+      setAiMovies(movies.filter(Boolean));
     } catch (err) {
       console.error("AI Suggestion Error:", err.message);
       setResult("❌ Failed to get suggestions from AI.");
@@ -145,7 +142,6 @@ function App() {
 
   const cinematicFont = { fontFamily: "'Cinzel', serif" };
   const movieFont = { fontFamily: "'Playfair Display', serif" };
-
 
   const backgroundStyle = {
     background: darkMode
@@ -241,7 +237,6 @@ function App() {
                           transform: "scale(1.03)",
                           boxShadow: 6,
                         },
-                        m: 1, // add margin around each card
                       }}
                     >
                       <CardMedia
@@ -258,11 +253,7 @@ function App() {
                         <Typography variant="h6" sx={{ ...movieFont }}>
                           {movie.Title}
                         </Typography>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ fontFamily: "'Playfair Display', serif" }}
-                        >
+                        <Typography variant="body2" color="text.secondary">
                           ⭐ {movie.imdbRating} | 📅 {movie.Year}
                         </Typography>
                       </CardContent>
@@ -282,7 +273,17 @@ function App() {
               <Grid container spacing={3} justifyContent="center">
                 {aiMovies.map((movie, index) => (
                   <Grid item xs={12} sm={6} md={4} key={index}>
-                    <Card sx={{ height: "100%", boxShadow: 3 }}>
+                    <Card
+                      sx={{
+                        height: "100%",
+                        boxShadow: 3,
+                        transition: "transform 0.3s, box-shadow 0.3s",
+                        "&:hover": {
+                          transform: "scale(1.03)",
+                          boxShadow: 6,
+                        },
+                      }}
+                    >
                       <CardMedia
                         component="img"
                         height="300"
@@ -294,7 +295,9 @@ function App() {
                         alt={movie.Title}
                       />
                       <CardContent>
-                        <Typography variant="h6">{movie.Title}</Typography>
+                        <Typography variant="h6" sx={{ ...movieFont }}>
+                          {movie.Title}
+                        </Typography>
                         <Typography variant="body2" color="text.secondary">
                           ⭐ {movie.imdbRating} | 📅 {movie.Year}
                         </Typography>
@@ -306,20 +309,26 @@ function App() {
             </>
           )}
 
-          {/* AI Fallback Text */}
+          {/* Fallback Text */}
           {!aiMovies.length && result && (
             <Card sx={{ mt: 4, boxShadow: 3 }}>
               <CardContent>
                 <Typography
                   variant="body1"
                   component="pre"
-                  sx={{ whiteSpace: "pre-wrap", wordWrap: "break-word" }}
+                  sx={{
+                    whiteSpace: "pre-wrap",
+                    wordWrap: "break-word",
+                    fontFamily: "monospace",
+                  }}
                 >
                   {result}
                 </Typography>
               </CardContent>
             </Card>
           )}
+
+          {/* Footer */}
           <Typography
             variant="body2"
             align="center"
