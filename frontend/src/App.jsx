@@ -68,7 +68,7 @@ function App() {
 
     try {
       const res = await axios.post(
-        "http://host.docker.internal:5000/api/suggest",
+        "http://ai-movie-genius.onrender.com/api/suggest",
         {
           prompt,
         }
